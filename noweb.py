@@ -1,47 +1,48 @@
 #! /usr/local/bin/python
 
-#
-# noweb.py
-# By Jonathan Aquino (jonathan.aquino@gmail.com)
-#
-# This program extracts code from a literate programming document in "noweb" format.
-# It was generated from noweb.py.txt, itself a literate programming document.
-# For more information, including the original source code and documentation,
-# see http://jonaquino.blogspot.com/2010/04/nowebpy-or-worlds-first-executable-blog.html
-#
+"""
+Extract code from a literate programming document in "noweb" format.
+Originally developed by Jonathan Aquino (jonathan.aquino@gmail.com) and forked by Anormalien.
+"""
 
-import sys, re
-filename = sys.argv[-1]
-outputChunkName = sys.argv[-2][2:]
-file = open(filename)
-chunkName = None
-chunks = {}
-OPEN = "<<"
-CLOSE = ">>"
-for line in file:
-    match = re.match(OPEN + "([^>]+)" + CLOSE + "=", line)
-    if match:
-        chunkName = match.group(1)
-        # If chunkName exists in chunks, then we'll just add to the existing chunk.
-        if not chunkName in chunks:
-            chunks[chunkName] = []
-    else:
-        match = re.match("@", line)
-        if match:
-            chunkName = None
-        elif chunkName:
-            chunks[chunkName].append(line)
+import re
+import sys
 
-def expand(chunkName, indent):
-    chunkLines = chunks[chunkName]
-    expandedChunkLines = []
-    for line in chunkLines:
-        match = re.match("(\s*)" + OPEN + "([^>]+)" + CLOSE + "\s*$", line)
+FILENAME = sys.argv[-1]
+OUTPUT_CHUNK_NAME = sys.argv[-2][2:]
+CHUNKS = {}
+
+OPEN = '<<'
+CLOSE = '>>'
+
+with open(FILENAME) as file:
+    for line in file:
+        match = re.match(OPEN + '([^>]+)' + CLOSE + '=', line)
         if match:
-            expandedChunkLines.extend(expand(match.group(2), indent + match.group(1)))
+            chunk_name = match.group(1)
+            if not chunk_name in chunks:
+                CHUNKS[chunk_name] = []
         else:
-            expandedChunkLines.append(indent + line)
-    return expandedChunkLines
+            match = re.match('@', line)
+            if match:
+                chunk_name = None
+            elif chunk_name:
+                CHUNKS[chunk_name].append(line)
 
-for line in expand(outputChunkName, ""):
-    print line,
+                
+def expand(chunk_name, indent):
+    """
+    Expand a chunk given its name and an indent.
+    """
+    expanded_chunk_lines = []
+    for line in CHUNKS[chunk_name]:
+        match = re.match('(\s*)' + OPEN + '([^>]+)' + CLOSE + '\s*$', line)
+        if match:
+            expanded_chunk_lines.extend(expand(match.group(2), indent + match.group(1)))
+        else:
+            expanded_chunk_lines.append(indent + line)
+    return expanded_chunk_lines
+
+
+for line in expand(OUTPUT_CHUNK_NAME, ''):
+    print(line)
